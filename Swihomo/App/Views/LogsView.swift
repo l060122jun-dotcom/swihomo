@@ -5,7 +5,7 @@ import UIKit
 import AppKit
 #endif
 
-private enum LogFilter: String, CaseIterable, Identifiable {
+private enum LogFilter: String, CaseIterable, Identifiable, Equatable {
     case all
     case app
     case core
@@ -29,7 +29,7 @@ private enum LogFilter: String, CaseIterable, Identifiable {
     }
 }
 
-private enum LogLevelFilter: String, CaseIterable, Identifiable {
+private enum LogLevelFilter: String, CaseIterable, Identifiable, Equatable {
     case all
     case debug
     case info
@@ -68,10 +68,13 @@ struct LogsView: View {
     @State private var filter = LogFilter.all
     @State private var levelFilter = LogLevelFilter.all
     @State private var searchText = ""
+    @State private var visibleEntries: [LogEntry] = []
     @State private var showingClearLogsConfirmation = false
 
-    private var entries: [LogEntry] {
-        model.logEntries
+    // Body re-evaluates on every AppModel publish (traffic 1/s) because the page stays cached,
+    // so the filter+sort pipeline must not run in body.
+    private func recomputeEntries() {
+        visibleEntries = model.logEntries
             .filter { filter == .all || $0.source.rawValue == filter.rawValue }
             .filter { levelFilter.level == nil || $0.level == levelFilter.level }
             .filter { entry in
@@ -87,7 +90,7 @@ struct LogsView: View {
     var body: some View {
         PageNavigationStack {
             List {
-                ForEach(entries) { entry in
+                ForEach(visibleEntries) { entry in
                     LogEntryRow(entry: entry)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(6)
@@ -111,7 +114,7 @@ struct LogsView: View {
                     .frame(width: 0, height: 0)
             }
             .overlay {
-                if entries.isEmpty {
+                if visibleEntries.isEmpty {
                     ContentUnavailableView(
                         LocalizedStringKey("logs.empty"),
                         systemImage: "doc.text.magnifyingglass",
@@ -166,6 +169,11 @@ struct LogsView: View {
                 Text(LocalizedStringKey("logs.clearLogs.description"))
             }
             .task { await model.reloadLogs() }
+            .onAppear { recomputeEntries() }
+            .onChange(of: model.logEntries) { _ in recomputeEntries() }
+            .onChange(of: filter) { _ in recomputeEntries() }
+            .onChange(of: levelFilter) { _ in recomputeEntries() }
+            .onChange(of: searchText) { _ in recomputeEntries() }
         }
     }
 

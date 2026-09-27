@@ -881,6 +881,11 @@ final class AppModel: ObservableObject {
         do {
             let coreLogs = try await tunnel.coreLogs()
             guard generation == coreLogRefreshGeneration else { return }
+            // Assigning @Published logEntries invalidates every mounted observer (LogsView stays cached), so unchanged polls must not publish.
+            let existing = logEntries.filter { $0.source == .core }
+            if coreLogs.count == existing.count && coreLogs.last?.id == existing.last?.id {
+                return
+            }
             logEntries = logStore.replace(source: .core, with: coreLogs)
         } catch where showErrors {
             present(error, module: "Logs")

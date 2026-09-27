@@ -2,6 +2,7 @@ import Foundation
 
 final class PersistentLogStore: @unchecked Sendable {
     private static let maximumEntries = 1_000
+    private static let persistDelay: TimeInterval = 5
 
     private let queue = DispatchQueue(label: "com.swihomo.log-store")
     // Encoding + atomic disk writes happen here so callers (often the main thread)
@@ -9,6 +10,8 @@ final class PersistentLogStore: @unchecked Sendable {
     private let persistQueue = DispatchQueue(label: "com.swihomo.log-store.persist", qos: .utility)
     private let fileURL: URL?
     private var storedEntries: [LogEntry]
+    private var sourceCounts: [LogSource: Int]
+    private var persistPending = false
 
     init(directoryName: String) {
         guard let applicationSupport = FileManager.default.urls(
@@ -17,6 +20,7 @@ final class PersistentLogStore: @unchecked Sendable {
         ).first else {
             fileURL = nil
             storedEntries = []
+            sourceCounts = [:]
             return
         }
 
@@ -27,6 +31,9 @@ final class PersistentLogStore: @unchecked Sendable {
         let fileURL = directory.appendingPathComponent("entries.json")
         self.fileURL = fileURL
         storedEntries = Self.load(from: fileURL)
+        sourceCounts = storedEntries.reduce(into: [LogSource: Int]()) { counts, entry in
+            counts[entry.source, default: 0] += 1
+        }
     }
 
     func entries() -> [LogEntry] {
@@ -53,6 +60,7 @@ final class PersistentLogStore: @unchecked Sendable {
             storedEntries.removeAll { $0.source == source }
             storedEntries.append(contentsOf: entries)
             storedEntries.sort { $0.timestamp < $1.timestamp }
+            sourceCounts[source] = entries.count
             trimLocked()
             schedulePersistLocked()
             return storedEntries
@@ -64,8 +72,10 @@ final class PersistentLogStore: @unchecked Sendable {
         queue.sync {
             if let source {
                 storedEntries.removeAll { $0.source == source }
+                sourceCounts[source] = 0
             } else {
                 storedEntries = []
+                sourceCounts.removeAll()
             }
             schedulePersistLocked()
             return storedEntries
@@ -74,19 +84,31 @@ final class PersistentLogStore: @unchecked Sendable {
 
     private func appendLocked(_ entry: LogEntry) {
         storedEntries.append(entry)
+        sourceCounts[entry.source, default: 0] += 1
         trimLocked()
         schedulePersistLocked()
     }
 
     private func trimLocked() {
-        storedEntries = Self.trimmed(storedEntries)
+        for source in LogSource.allCases {
+            while sourceCounts[source, default: 0] > Self.maximumEntries {
+                guard let index = storedEntries.firstIndex(where: { $0.source == source }) else { break }
+                storedEntries.remove(at: index)
+                sourceCounts[source, default: 0] -= 1
+            }
+        }
     }
 
     // Must be called on `queue`; snapshots and hops to `persistQueue`.
+    // Debounce bursts: the extension appends once per core log line.
     private func schedulePersistLocked() {
-        guard let fileURL else { return }
-        let snapshot = storedEntries
-        persistQueue.async {
+        guard let fileURL, !persistPending else { return }
+        persistPending = true
+        persistQueue.asyncAfter(deadline: .now() + Self.persistDelay) {
+            let snapshot = self.queue.sync {
+                self.persistPending = false
+                return self.storedEntries
+            }
             guard let data = try? JSONEncoder().encode(snapshot) else { return }
             try? data.write(to: fileURL, options: .atomic)
         }
