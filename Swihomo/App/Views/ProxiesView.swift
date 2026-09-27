@@ -134,6 +134,9 @@ private struct ProxiesToolbarContent: View {
         Menu {
             Section("proxies.sort.groupCards.sortBy") {
                 ForEach(ProxyGroupSortCriterion.allCases) { criterion in
+                    // macOS 27 hides menu item symbol images by default; the
+                    // checkmark/direction glyphs carry selection state, so opt
+                    // every item in this menu back into icons.
                     Button {
                         groupSortCriterion = criterion
                     } label: {
@@ -142,6 +145,7 @@ private struct ProxiesToolbarContent: View {
                             systemImage: groupSortCriterion == criterion ? "checkmark" : "circle"
                         )
                     }
+                    .labelStyle(.titleAndIcon)
                 }
             }
             Section("proxies.sort.groupCards.direction") {
@@ -154,6 +158,7 @@ private struct ProxiesToolbarContent: View {
                             systemImage: groupSortDirection == direction ? "checkmark" : direction.systemImage
                         )
                     }
+                    .labelStyle(.titleAndIcon)
                 }
             }
             Section("proxies.sort.nodes.sortBy") {
@@ -166,6 +171,7 @@ private struct ProxiesToolbarContent: View {
                             systemImage: nodeSortCriterion == criterion ? "checkmark" : "circle"
                         )
                     }
+                    .labelStyle(.titleAndIcon)
                 }
             }
             Section("proxies.sort.nodes.direction") {
@@ -178,6 +184,7 @@ private struct ProxiesToolbarContent: View {
                             systemImage: nodeSortDirection == direction ? "checkmark" : direction.systemImage
                         )
                     }
+                    .labelStyle(.titleAndIcon)
                 }
             }
         } label: {

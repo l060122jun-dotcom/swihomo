@@ -209,6 +209,8 @@ private struct LogsToolbarContent: View {
     private var sourceFilterSection: some View {
         Section("common.source") {
             ForEach(LogFilter.allCases) { source in
+                // macOS 27 hides menu item symbol images by default; the checkmark
+                // glyphs carry selection state, so opt the items back into icons.
                 Button {
                     filter = source
                 } label: {
@@ -217,6 +219,7 @@ private struct LogsToolbarContent: View {
                         systemImage: filter == source ? "checkmark" : "circle"
                     )
                 }
+                .labelStyle(.titleAndIcon)
             }
         }
     }
@@ -232,6 +235,7 @@ private struct LogsToolbarContent: View {
                         systemImage: levelFilter == level ? "checkmark" : "circle"
                     )
                 }
+                .labelStyle(.titleAndIcon)
             }
         }
     }

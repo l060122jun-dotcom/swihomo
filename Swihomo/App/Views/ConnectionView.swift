@@ -119,6 +119,9 @@ private struct ConnectionToolbarContent: View {
         Menu {
             Section("common.sortBy") {
                 ForEach(ConnectionSortCriterion.allCases) { criterion in
+                    // macOS 27 hides menu item symbol images by default; the
+                    // checkmark/direction glyphs carry selection state, so opt
+                    // every item in this menu back into icons.
                     Button {
                         sortCriterion = criterion
                         sortDirection = criterion == .speed ? .descending : .ascending
@@ -128,6 +131,7 @@ private struct ConnectionToolbarContent: View {
                             systemImage: sortCriterion == criterion ? "checkmark" : "circle"
                         )
                     }
+                    .labelStyle(.titleAndIcon)
                 }
             }
             Section("common.direction") {
@@ -140,6 +144,7 @@ private struct ConnectionToolbarContent: View {
                             systemImage: sortDirection == direction ? "checkmark" : direction.systemImage
                         )
                     }
+                    .labelStyle(.titleAndIcon)
                 }
             }
         } label: {
