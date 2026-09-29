@@ -23,6 +23,17 @@ actor SharedProfileRepository {
         let subscriptionInfo: MihomoSubscriptionInfo?
     }
 
+    private struct BundledProfiles: Decodable {
+        struct Entry: Decodable {
+            let name: String
+            let source: ProfileSource
+            let remoteURL: URL?
+            let contents: String
+        }
+
+        let profiles: [Entry]
+    }
+
     private struct LoadedStorage {
         let snapshot: ClientSnapshot
         let contentsByID: [UUID: String]
@@ -113,7 +124,39 @@ actor SharedProfileRepository {
 
     func loadSnapshot() throws -> ClientSnapshot {
         try throwPendingInitializationErrorIfNeeded()
+        try importBundledProfilesIfNeeded()
         return snapshot
+    }
+
+    private func importBundledProfilesIfNeeded() throws {
+        guard !isStorageReadOnly,
+              let storageRoot,
+              let bundleURL = Bundle.main.url(forResource: "BundledProfiles", withExtension: "json") else {
+            return
+        }
+
+        let marker = storageRoot.appendingPathComponent("bundled-profiles-v1.marker")
+        guard !fileManager.fileExists(atPath: marker.path) else { return }
+
+        let bundled = try JSONDecoder().decode(BundledProfiles.self, from: Data(contentsOf: bundleURL))
+        for entry in bundled.profiles {
+            guard !snapshot.profiles.contains(where: { $0.name == entry.name }) else { continue }
+            if entry.source == .remote, entry.remoteURL == nil {
+                throw ClientError.invalidProfile
+            }
+            _ = try createProfile(
+                name: entry.name,
+                source: entry.source,
+                remoteURL: entry.remoteURL,
+                contents: entry.contents
+            )
+        }
+
+        if snapshot.activeProfileID == nil, let first = snapshot.profiles.first {
+            snapshot.activeProfileID = first.id
+            try save(snapshot)
+        }
+        try Data().write(to: marker, options: .atomic)
     }
 
     func createLocalProfile(name: String, contents: String) throws -> ClientSnapshot {
