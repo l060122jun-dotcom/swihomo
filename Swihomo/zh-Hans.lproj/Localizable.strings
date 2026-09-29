@@ -136,6 +136,10 @@
 "preferences.packetTunnel.excludeCellularServices.description" = "绕过 Wi-Fi Calling, MMS, SMS, Visual Voicemail 等蜂窝服务流量。";
 "preferences.packetTunnel.includeAllNetworks" = "包含所有网络";
 "preferences.packetTunnel.includeAllNetworks.description" = "默认情况下，数据包隧道不会处理所有连接。启用此设置后，所有网络流量都会纳入数据包隧道。";
+"preferences.packetTunnel.ipStack" = "网络栈";
+"preferences.packetTunnel.ipStack.description" = "选择数据包隧道使用的用户态网络栈, mipstack 比 gVisor 更轻量, 可以减少内存占用";
+"preferences.packetTunnel.congestionController" = "拥塞控制算法";
+"preferences.packetTunnel.congestionController.description" = "mipstack 使用的 TCP 拥塞控制算法, BBR 在高延迟或丢包链路上通常表现更好";
 "preferences.menuBar.title" = "菜单栏";
 "preferences.menuBar.display" = "显示";
 "preferences.menuBar.display.icon" = "仅图标";
@@ -323,8 +327,7 @@
 "menubar.quitApp" = "退出 Swihomo";
 "preferences.experimental.replaceGeoDatabases" = "用规则集替代 Geo 数据库";
 "preferences.experimental.replaceGeoDatabases.description" = "将 GEOIP/GEOSITE 规则与 DNS 中的 geosite 策略改写为 mrs 规则集, 并移除 Geo 数据库设置以减少内存占用, 不会迁移 dns.fallback-filter.geosite, 下次连接时生效";
-"preferences.experimental.useMipstack" = "为 Packet Tunnel 使用 mipstack";
-"preferences.experimental.useMipstack.description" = "将 Packet Tunnel 的网络栈从 gVisor 切换为更轻量的 mipstack 以减少内存占用, 下次连接时生效";
+
 "preferences.experimental.delayTestConcurrency" = "延迟测试并发数量";
 "preferences.experimental.realtimeDelayTest" = "实时延迟测试";
 "preferences.experimental.realtimeDelayTest.description" = "逐个测试节点并实时更新结果卡片, 关闭时组测速使用统一的组 API, 失败的节点一律视为错误";

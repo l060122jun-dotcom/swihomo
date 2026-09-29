@@ -136,6 +136,10 @@
 "preferences.packetTunnel.excludeCellularServices.description" = "Exclude Wi-Fi Calling, MMS, SMS, Visual Voicemail, and similar cellular service traffic.";
 "preferences.packetTunnel.includeAllNetworks" = "Include all networks";
 "preferences.packetTunnel.includeAllNetworks.description" = "By default, the Packet Tunnel does not handle every connection. Enable this setting to include all network traffic in the Packet Tunnel.";
+"preferences.packetTunnel.ipStack" = "Network Stack";
+"preferences.packetTunnel.ipStack.description" = "Selects the userspace network stack for the packet tunnel. mipstack is lighter than gVisor and reduces memory usage.";
+"preferences.packetTunnel.congestionController" = "Congestion Controller";
+"preferences.packetTunnel.congestionController.description" = "TCP congestion control algorithm used by mipstack. BBR usually performs better on high-latency or lossy links.";
 "preferences.menuBar.title" = "Menu Bar";
 "preferences.menuBar.display" = "Display";
 "preferences.menuBar.display.icon" = "Icon Only";
@@ -323,8 +327,7 @@
 "menubar.quitApp" = "Quit Swihomo";
 "preferences.experimental.replaceGeoDatabases" = "Replace Geo databases with rulesets";
 "preferences.experimental.replaceGeoDatabases.description" = "Rewrites GEOIP/GEOSITE rules and DNS geosite policies to mrs rulesets and removes geo database settings, reducing memory usage. dns.fallback-filter.geosite is not migrated. Applies the next time you connect.";
-"preferences.experimental.useMipstack" = "Use mipstack for packet tunnel";
-"preferences.experimental.useMipstack.description" = "Switches the packet tunnel network stack from gVisor to the lighter mipstack, reducing memory usage. Applies the next time you connect.";
+
 "preferences.experimental.delayTestConcurrency" = "Delay test concurrency";
 "preferences.experimental.realtimeDelayTest" = "Realtime delay test";
 "preferences.experimental.realtimeDelayTest.description" = "Tests each node individually and updates cards as results arrive. When off, group tests use the group API instead and failed nodes are all reported as errors.";

@@ -36,12 +36,15 @@ private final class EmbeddedMihomoCore: MihomoCoreEngine {
         let homeDirectory = try Self.homeDirectory()
         let result = profile.withUnsafeMutableBufferPointer { profileBuffer in
             homeDirectory.path.withCString { homeDirectoryPointer in
-                SwihomoCoreStart(
-                    profileBuffer.baseAddress,
-                    profileBuffer.count,
-                    homeDirectoryPointer,
-                    configuration.useMipstack ? 1 : 0
-                )
+                configuration.congestionController.rawValue.withCString { congestionControllerPointer in
+                    SwihomoCoreStart(
+                        profileBuffer.baseAddress,
+                        profileBuffer.count,
+                        homeDirectoryPointer,
+                        configuration.ipStack == .mipstack ? 1 : 0,
+                        congestionControllerPointer
+                    )
+                }
             }
         }
 

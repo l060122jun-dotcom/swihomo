@@ -2,7 +2,8 @@ import Foundation
 
 struct MihomoRuntimeConfiguration {
     let profileYAML: Data
-    var useMipstack = false
+    var ipStack: PacketTunnelIPStack = .mipstack
+    var congestionController: PacketTunnelCongestionController = .cubic
 }
 
 struct MihomoGeoDataRequirements {

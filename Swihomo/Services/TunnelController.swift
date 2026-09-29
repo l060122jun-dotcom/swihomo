@@ -60,7 +60,8 @@ final class TunnelController {
             "mtu": NSNumber(value: mtu),
             "customDNSServers": customDNSServers,
             "ipv6Enabled": NSNumber(value: ipv6Enabled),
-            "useMipstack": NSNumber(value: useMipstack)
+            "ipStack": ipStack.rawValue,
+            "congestionController": congestionController.rawValue
         ]
         manager.protocolConfiguration = tunnelProtocol
         manager.localizedDescription = "Swihomo"
@@ -125,8 +126,12 @@ final class TunnelController {
         SettingsStore.shared.settings.packetTunnelIPv6Enabled
     }
 
-    private var useMipstack: Bool {
-        SettingsStore.shared.settings.packetTunnelUseMipstack
+    private var ipStack: PacketTunnelIPStack {
+        SettingsStore.shared.settings.packetTunnelIPStack
+    }
+
+    private var congestionController: PacketTunnelCongestionController {
+        SettingsStore.shared.settings.packetTunnelCongestionController
     }
 
     private var packetTunnelExcludeCellularServices: Bool {

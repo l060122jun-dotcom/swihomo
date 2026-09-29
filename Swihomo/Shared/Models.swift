@@ -137,6 +137,40 @@ enum PacketTunnelMTULimits {
     static let maximum = 4064
 }
 
+/// Userspace IP stack backing the packet tunnel.
+enum PacketTunnelIPStack: String, CaseIterable, Identifiable {
+    case gvisor
+    case mipstack
+
+    var id: Self { self }
+
+    var displayName: String {
+        switch self {
+        case .gvisor: "gVisor"
+        case .mipstack: "mipstack"
+        }
+    }
+}
+
+/// TCP congestion controller used by the mipstack network stack.
+enum PacketTunnelCongestionController: String, CaseIterable, Identifiable {
+    case cubic
+    case reno
+    case bbr
+    case bbr3
+
+    var id: Self { self }
+
+    var displayName: String {
+        switch self {
+        case .cubic: "Cubic"
+        case .reno: "Reno"
+        case .bbr: "BBR"
+        case .bbr3: "BBRv3"
+        }
+    }
+}
+
 struct ProxyOverrides: Codable, Equatable {
     var mode: ProxyMode
     var logLevel: MihomoLogLevel

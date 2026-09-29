@@ -27,7 +27,8 @@ struct Settings: Codable, Equatable, @unchecked Sendable {
     var packetTunnelMTU: Int = PacketTunnelMTULimits.defaultValue
     var packetTunnelCustomDNSServers: String = ""
     var packetTunnelIPv6Enabled: Bool = true
-    var packetTunnelUseMipstack: Bool = false
+    var packetTunnelIPStack: PacketTunnelIPStack = .mipstack
+    var packetTunnelCongestionController: PacketTunnelCongestionController = .cubic
     var proxyGroupSortCriterion: ProxyGroupSortCriterion = .original
     var proxyGroupSortDirection: ProxySortDirection = .ascending
     var proxyNodeSortCriterion: ProxyNodeSortCriterion = .original
@@ -61,13 +62,19 @@ struct Settings: Codable, Equatable, @unchecked Sendable {
         case packetTunnelMTU
         case packetTunnelCustomDNSServers
         case packetTunnelIPv6Enabled
-        case packetTunnelUseMipstack
+        case packetTunnelIPStack
+        case packetTunnelCongestionController
         case proxyGroupSortCriterion
         case proxyGroupSortDirection
         case proxyNodeSortCriterion
         case proxyNodeSortDirection
         case pendingCoreLogClear
         case geoDataLastUpdated
+    }
+
+    /// Keys removed from `CodingKeys` whose values still migrate forward.
+    private enum LegacyCodingKeys: String, CodingKey {
+        case packetTunnelUseMipstack
     }
 
     init(from decoder: Decoder) throws {
@@ -94,7 +101,17 @@ struct Settings: Codable, Equatable, @unchecked Sendable {
         packetTunnelMTU = try container.decodeIfPresent(Int.self, forKey: .packetTunnelMTU) ?? PacketTunnelMTULimits.defaultValue
         packetTunnelCustomDNSServers = try container.decodeIfPresent(String.self, forKey: .packetTunnelCustomDNSServers) ?? ""
         packetTunnelIPv6Enabled = try container.decodeIfPresent(Bool.self, forKey: .packetTunnelIPv6Enabled) ?? true
-        packetTunnelUseMipstack = try container.decodeIfPresent(Bool.self, forKey: .packetTunnelUseMipstack) ?? false
+        if let ipStack = try container.decodeIfPresent(PacketTunnelIPStack.self, forKey: .packetTunnelIPStack) {
+            packetTunnelIPStack = ipStack
+        } else {
+            // Migrate the pre-picker boolean: an explicit legacy value maps to the
+            // matching stack so upgrades keep the behavior the user last ran with.
+            let legacyContainer = try decoder.container(keyedBy: LegacyCodingKeys.self)
+            if let useMipstack = try legacyContainer.decodeIfPresent(Bool.self, forKey: .packetTunnelUseMipstack) {
+                packetTunnelIPStack = useMipstack ? .mipstack : .gvisor
+            }
+        }
+        packetTunnelCongestionController = try container.decodeIfPresent(PacketTunnelCongestionController.self, forKey: .packetTunnelCongestionController) ?? .cubic
         proxyGroupSortCriterion = try container.decodeIfPresent(ProxyGroupSortCriterion.self, forKey: .proxyGroupSortCriterion) ?? .original
         proxyGroupSortDirection = try container.decodeIfPresent(ProxySortDirection.self, forKey: .proxyGroupSortDirection) ?? .ascending
         proxyNodeSortCriterion = try container.decodeIfPresent(ProxyNodeSortCriterion.self, forKey: .proxyNodeSortCriterion) ?? .original
@@ -123,6 +140,8 @@ extension ConnectionSortCriterion: Codable {}
 extension ProxySortDirection: Codable {}
 extension SubscriptionInfoDisplay: Codable {}
 extension ProxyGroupSortCriterion: Codable {}
+extension PacketTunnelIPStack: Codable {}
+extension PacketTunnelCongestionController: Codable {}
 extension ProxyNodeSortCriterion: Codable {}
 
 extension AppTheme: Hashable {}
@@ -132,6 +151,8 @@ extension ProxySortDirection: Hashable {}
 extension SubscriptionInfoDisplay: Hashable {}
 extension ProxyGroupSortCriterion: Hashable {}
 extension ProxyNodeSortCriterion: Hashable {}
+extension PacketTunnelIPStack: Hashable {}
+extension PacketTunnelCongestionController: Hashable {}
 extension LogLevel: Hashable {}
 
 private let settingsLogger = Logger(
@@ -364,7 +385,12 @@ private final class SettingsPersistence: @unchecked Sendable {
             }
         }
         applyBool("packetTunnelIPv6Enabled", to: \Settings.packetTunnelIPv6Enabled)
-        applyBool("packetTunnelUseMipstack", to: \Settings.packetTunnelUseMipstack)
+        if hasValue("packetTunnelUseMipstack") {
+            didFindLegacyValues = true
+            if let useMipstack = boolValue("packetTunnelUseMipstack") {
+                settings.packetTunnelIPStack = useMipstack ? .mipstack : .gvisor
+            }
+        }
         applyString("proxyGroupSortCriterion", to: \Settings.proxyGroupSortCriterion)
         applyString("proxyGroupSortDirection", to: \Settings.proxyGroupSortDirection)
         applyString("proxyNodeSortCriterion", to: \Settings.proxyNodeSortCriterion)

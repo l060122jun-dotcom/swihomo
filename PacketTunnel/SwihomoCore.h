@@ -5,7 +5,8 @@ int SwihomoCoreStart(
     uint8_t *profile,
     size_t profileLength,
     const char *homeDirectory,
-    int useMipstack
+    int useMipstack,
+    const char *congestionController
 );
 int SwihomoCoreInputPackets(
     const uint8_t *buffer,

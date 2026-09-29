@@ -7,6 +7,7 @@ import SwiftUI
 struct PreferencesView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppSetting(\.appTheme) private var selectedTheme
     @State private var systemThemeResetID = UUID()
     @AppSetting(\.automaticallyReclaimsMemory) private var automaticallyReclaimsMemory
@@ -27,7 +28,8 @@ struct PreferencesView: View {
     @AppSetting(\.packetTunnelMTU) private var packetTunnelMTU
     @AppSetting(\.packetTunnelCustomDNSServers) private var packetTunnelCustomDNSServers
     @AppSetting(\.packetTunnelIPv6Enabled) private var packetTunnelIPv6Enabled
-    @AppSetting(\.packetTunnelUseMipstack) private var packetTunnelUseMipstack
+    @AppSetting(\.packetTunnelIPStack) private var packetTunnelIPStack
+    @AppSetting(\.packetTunnelCongestionController) private var packetTunnelCongestionController
     @State private var packetTunnelMTUInput: String?
 #if os(iOS)
     @State private var editorPath: [CompactRoute] = []
@@ -165,14 +167,6 @@ struct PreferencesView: View {
             }
 
             PreferenceRow(
-                title: Text("preferences.experimental.useMipstack"),
-                description: Text("preferences.experimental.useMipstack.description")
-            ) {
-                Toggle("preferences.experimental.useMipstack", isOn: $packetTunnelUseMipstack)
-                    .labelsHidden()
-            }
-
-            PreferenceRow(
                 title: Text("preferences.experimental.realtimeDelayTest"),
                 description: Text("preferences.experimental.realtimeDelayTest.description")
             ) {
@@ -285,6 +279,34 @@ struct PreferencesView: View {
                     .labelsHidden()
             }
 
+            PreferenceRow(
+                title: Text("preferences.packetTunnel.ipStack"),
+                description: Text("preferences.packetTunnel.ipStack.description")
+            ) {
+                Picker("preferences.packetTunnel.ipStack", selection: packetTunnelIPStackBinding) {
+                    ForEach(PacketTunnelIPStack.allCases) { stack in
+                        Text(verbatim: stack.displayName).tag(stack)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+            }
+
+            if packetTunnelIPStack == .mipstack {
+                PreferenceRow(
+                    title: Text("preferences.packetTunnel.congestionController"),
+                    description: Text("preferences.packetTunnel.congestionController.description")
+                ) {
+                    Picker("preferences.packetTunnel.congestionController", selection: $packetTunnelCongestionController) {
+                        ForEach(PacketTunnelCongestionController.allCases) { controller in
+                            Text(verbatim: controller.displayName).tag(controller)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                }
+            }
+
             packetTunnelEditorSection(
                 titleKey: "preferences.packetTunnel.customDNS",
                 descriptionKey: "preferences.packetTunnel.customDNS.description",
@@ -297,36 +319,35 @@ struct PreferencesView: View {
                 title: Text("preferences.packetTunnel.includeAllNetworks"),
                 description: Text("preferences.packetTunnel.includeAllNetworks.description")
             ) {
-                Toggle("preferences.packetTunnel.includeAllNetworks", isOn: $packetTunnelIncludeAllNetworks)
+                Toggle("preferences.packetTunnel.includeAllNetworks", isOn: packetTunnelIncludeAllNetworksBinding)
                     .labelsHidden()
             }
 
-            PreferenceRow(
-                title: Text("preferences.packetTunnel.excludeCellularServices"),
-                description: Text("preferences.packetTunnel.excludeCellularServices.description")
-            ) {
-                Toggle("preferences.packetTunnel.excludeCellularServices", isOn: $packetTunnelExcludeCellularServices)
-                    .labelsHidden()
-            }
-            .disabled(!packetTunnelIncludeAllNetworks)
+            if packetTunnelIncludeAllNetworks {
+                PreferenceRow(
+                    title: Text("preferences.packetTunnel.excludeCellularServices"),
+                    description: Text("preferences.packetTunnel.excludeCellularServices.description")
+                ) {
+                    Toggle("preferences.packetTunnel.excludeCellularServices", isOn: $packetTunnelExcludeCellularServices)
+                        .labelsHidden()
+                }
 
-            PreferenceRow(
-                title: Text("preferences.packetTunnel.bypassLocalNetworks"),
-                description: Text("preferences.packetTunnel.bypassLocalNetworks.description")
-            ) {
-                Toggle("preferences.packetTunnel.bypassLocalNetworks", isOn: $packetTunnelBypassesPrivateNetworks)
-                    .labelsHidden()
-            }
-            .disabled(!packetTunnelIncludeAllNetworks)
+                PreferenceRow(
+                    title: Text("preferences.packetTunnel.bypassLocalNetworks"),
+                    description: Text("preferences.packetTunnel.bypassLocalNetworks.description")
+                ) {
+                    Toggle("preferences.packetTunnel.bypassLocalNetworks", isOn: $packetTunnelBypassesPrivateNetworks)
+                        .labelsHidden()
+                }
 
-            PreferenceRow(
-                title: Text("preferences.packetTunnel.bypassAPNs"),
-                description: Text("preferences.packetTunnel.bypassAPNs.description")
-            ) {
-                Toggle("preferences.packetTunnel.bypassAPNs", isOn: $packetTunnelBypassAPNs)
-                    .labelsHidden()
+                PreferenceRow(
+                    title: Text("preferences.packetTunnel.bypassAPNs"),
+                    description: Text("preferences.packetTunnel.bypassAPNs.description")
+                ) {
+                    Toggle("preferences.packetTunnel.bypassAPNs", isOn: $packetTunnelBypassAPNs)
+                        .labelsHidden()
+                }
             }
-            .disabled(!packetTunnelIncludeAllNetworks)
 
             packetTunnelEditorSection(
                 titleKey: "preferences.packetTunnel.bypassIPRanges",
@@ -365,6 +386,30 @@ struct PreferencesView: View {
             }
         }
 #endif
+    }
+
+    // Animated setters: the dependent rows below expand/collapse by height, and
+    // the animation must wrap the settings write or the rows jump abruptly.
+    private var packetTunnelIPStackBinding: Binding<PacketTunnelIPStack> {
+        Binding(
+            get: { packetTunnelIPStack },
+            set: { value in
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
+                    packetTunnelIPStack = value
+                }
+            }
+        )
+    }
+
+    private var packetTunnelIncludeAllNetworksBinding: Binding<Bool> {
+        Binding(
+            get: { packetTunnelIncludeAllNetworks },
+            set: { value in
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
+                    packetTunnelIncludeAllNetworks = value
+                }
+            }
+        )
     }
 
     private var packetTunnelMTUInputBinding: Binding<String> {
