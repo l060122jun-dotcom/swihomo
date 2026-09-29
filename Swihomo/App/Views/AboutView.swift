@@ -23,7 +23,7 @@ struct AboutView: View {
                     appIcon
                         .frame(width: 96, height: 96)
 
-                    Text("Swihomo")
+                    Text("流云VPN")
                         .font(.title.bold())
                     Text("about.subtitle")
                         .font(.callout)

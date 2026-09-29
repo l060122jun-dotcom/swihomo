@@ -161,7 +161,7 @@ struct HomeView: View {
                 // macOS keeps the in-content title header; iOS uses the navigation title.
                 #if os(macOS)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Swihomo")
+                    Text("流云VPN")
                         .font(.title.bold())
                     Text("home.controlCenter")
                         .font(.subheadline)
@@ -184,7 +184,7 @@ struct HomeView: View {
         #if os(macOS)
         .navigationTitle(Text(LocalizedStringKey("navigation.home")))
         #else
-        .navigationTitle("Swihomo")
+        .navigationTitle("流云VPN")
         #endif
     }
 
@@ -446,7 +446,7 @@ struct HomeView: View {
         case .tools:
             "Utilities and network diagnostics"
         case .preference:
-            "Configure Swihomo for this device"
+            "Configure 流云VPN for this device"
         case .about:
             "App details and open-source licenses"
         }

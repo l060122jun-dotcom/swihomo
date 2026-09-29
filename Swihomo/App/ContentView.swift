@@ -103,7 +103,7 @@ struct ContentView: View {
         var titleKey: LocalizedStringKey {
             switch self {
             // Matches HomeView's iOS title: the app name, not "Home".
-            case .home: "Swihomo"
+            case .home: "流云VPN"
             case .proxies: HomeSection.proxies.titleKey
             case .preferences: HomeSection.preference.titleKey
             }
